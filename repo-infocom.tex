@@ -1,0 +1,273 @@
+
+%% bare_conf.tex
+%% V1.3
+%% 2007/01/11
+%% by Michael Shell
+%% See:
+%% http://www.michaelshell.org/
+%% for current contact information.
+%%
+%% This is a skeleton file demonstrating the use of IEEEtran.cls
+%% (requires IEEEtran.cls version 1.7 or later) with an IEEE conference paper.
+%%
+%% Support sites:
+%% http://www.michaelshell.org/tex/ieeetran/
+%% http://www.ctan.org/tex-archive/macros/latex/contrib/IEEEtran/
+%% and
+%% http://www.ieee.org/
+
+%%*************************************************************************
+%% Legal Notice:
+%% This code is offered as-is without any warranty either expressed or
+%% implied; without even the implied warranty of MERCHANTABILITY or
+%% FITNESS FOR A PARTICULAR PURPOSE!
+%% User assumes all risk.
+%% In no event shall IEEE or any contributor to this code be liable for
+%% any damages or losses, including, but not limited to, incidental,
+%% consequential, or any other damages, resulting from the use or misuse
+%% of any information contained here.
+%%
+%% All comments are the opinions of their respective authors and are not
+%% necessarily endorsed by the IEEE.
+%%
+%% This work is distributed under the LaTeX Project Public License (LPPL)
+%% ( http://www.latex-project.org/ ) version 1.3, and may be freely used,
+%% distributed and modified. A copy of the LPPL, version 1.3, is included
+%% in the base LaTeX documentation of all distributions of LaTeX released
+%% 2003/12/01 or later.
+%% Retain all contribution notices and credits.
+%% ** Modified files should be clearly indicated as such, including  **
+%% ** renaming them and changing author support contact information. **
+%%
+%% File list of work: IEEEtran.cls, IEEEtran_HOWTO.pdf, bare_adv.tex,
+%%                    bare_conf.tex, bare_jrnl.tex, bare_jrnl_compsoc.tex
+%%*************************************************************************
+
+% *** Authors should verify (and, if needed, correct) their LaTeX system  ***
+% *** with the testflow diagnostic prior to trusting their LaTeX platform ***
+% *** with production work. IEEE's font choices can trigger bugs that do  ***
+% *** not appear when using other class files.                            ***
+% The testflow support page is at:
+% http://www.michaelshell.org/tex/testflow/
+
+
+
+% Note that the a4paper option is mainly intended so that authors in
+% countries using A4 can easily print to A4 and see how their papers will
+% look in print - the typesetting of the document will not typically be
+% affected with changes in paper size (but the bottom and side margins will).
+% Use the testflow package mentioned above to verify correct handling of
+% both paper sizes by the user's LaTeX system.
+%
+% Also note that the "draftcls" or "draftclsnofoot", not "draft", option
+% should be used if it is desired that the figures are to be displayed in
+% draft mode.
+%
+\documentclass[conference]{IEEEtran}
+
+\usepackage{url, fancyvrb, framed, multirow, tabularx, graphicx, epstopdf, enumerate, array, cite, algorithmic, fixltx2e}
+
+\usepackage[cmex10]{amsmath}
+%\usepackage{breqn}
+
+% correct bad hyphenation here
+\hyphenation{op-tical net-works semi-conduc-tor}
+
+\begin{document}
+%
+% paper title
+% can use linebreaks \\ within to get better formatting as desired
+\title{NDN Repo: An NDN Persistent Storage Model}
+
+
+% author names and affiliations
+% use a multiple column layout for up to three different
+% affiliations
+%\author{\IEEEauthorblockN{Michael Shell}
+%\IEEEauthorblockA{School of Electrical and\\Computer Engineering\\
+%Georgia Institute of Technology\\
+%Atlanta, Georgia 30332--0250\\
+%Email: http://www.michaelshell.org/contact.html}
+%\and
+%\IEEEauthorblockN{Homer Simpson}
+%\IEEEauthorblockA{Twentieth Century Fox\\
+%Springfield, USA\\
+%Email: homer@thesimpsons.com}
+%\and
+%\IEEEauthorblockN{James Kirk\\ and Montgomery Scott}
+%\IEEEauthorblockA{Starfleet Academy\\
+%San Francisco, California 96678-2391\\
+%Telephone: (800) 555--1212\\
+%Fax: (888) 555--1212}}
+
+% conference papers do not typically use \thanks and this command
+% is locked out in conference mode. If really needed, such as for
+% the acknowledgment of grants, issue a \IEEEoverridecommandlockouts
+% after \documentclass
+
+% for over three affiliations, or if they all won't fit within the width
+% of the page, use this alternative format:
+%
+%\author{\IEEEauthorblockN{Michael Shell\IEEEauthorrefmark{1},
+%Homer Simpson\IEEEauthorrefmark{2},
+%James Kirk\IEEEauthorrefmark{3},
+%Montgomery Scott\IEEEauthorrefmark{3} and
+%Eldon Tyrell\IEEEauthorrefmark{4}}
+%\IEEEauthorblockA{\IEEEauthorrefmark{1}School of Electrical and Computer Engineering\\
+%Georgia Institute of Technology,
+%Atlanta, Georgia 30332--0250\\ Email: see http://www.michaelshell.org/contact.html}
+%\IEEEauthorblockA{\IEEEauthorrefmark{2}Twentieth Century Fox, Springfield, USA\\
+%Email: homer@thesimpsons.com}
+%\IEEEauthorblockA{\IEEEauthorrefmark{3}Starfleet Academy, San Francisco, California 96678-2391\\
+%Telephone: (800) 555--1212, Fax: (888) 555--1212}
+%\IEEEauthorblockA{\IEEEauthorrefmark{4}Tyrell Inc., 123 Replicant Street, Los Angeles, California 90210--4321}}
+
+
+
+
+% use for special paper notices
+%\IEEEspecialpapernotice{(Invited Paper)}
+
+
+
+
+% make the title area
+\maketitle
+
+
+\begin{abstract}
+%\boldmath
+
+\end{abstract}
+% IEEEtran.cls defaults to using nonbold math in the Abstract.
+% This preserves the distinction between vectors and scalars. However,
+% if the conference you are submitting to favors bold math in the abstract,
+% then you can use LaTeX's standard command \boldmath at the very start
+% of the abstract to achieve this. Many IEEE journals/conferences frown on
+% math in the abstract anyway.
+
+% no keywords
+
+
+
+
+% For peer review papers, you can put extra information on the cover
+% page as needed:
+% \ifCLASSOPTIONpeerreview
+% \begin{center} \bfseries EDICS Category: 3-BBND \end{center}
+% \fi
+%
+% For peerreview papers, this IEEEtran command inserts a page break and
+% creates the second title. It will be ignored for other modes.
+\IEEEpeerreviewmaketitle
+
+\section{Introduction}
+Basic introduction of NDN and Why Naming and signature of data makes in-network storage possible.
+
+What is repo: storage device of data object managed by single party. Management Unit: prefix of data object. Provided functions: read, insert, delete, watch prefix.
+
+Basic ideas of repo: Application Level Object. Repo is an attempt to implement this idea. What can repo benefit from Application Level Object idea.
+
+\section{Background}
+\subsection{ccnr}
+ccnr. what it cannot do compared to repo
+
+\subsection{Naming Convention of NDN}
+Naming convention of NDN. Repo is to handle immutable data.
+
+\subsection{Application Level Object}
+talk something about paper ``Architectural  Considerations  for  a  New  Generation  of  Protocols ''
+
+\section{Design of Repo}
+Address what problem should repo deal with:
+\begin{enumerate}
+\item how to identify a repo
+\item what to encode command and response
+\item how to transport command to designated repo
+\item how to construct trust policy and access control (based on signature info in signed interest)
+\item how to build functional application using repo (talking about necessity of status check command in helping building apps using repo)
+\end{enumerate}
+
+Summary of points above. talk about a simple process of a repo command.
+
+What are the advantages of this design.
+
+\begin{itemize}
+\item Compared to ccnr. We have remote operations, removing functions, trust management
+\item compared to general network storage system. Repo stores application level object. network read data packet. avoid mapping between storage data and network data.
+\end{itemize}
+
+what functions have currently supported and what are the definitions.
+
+\subsection{read}
+
+\subsection{insert}
+\subsubsection{process of insert}
+how to handle single insert, single insert with selector and segmented insert
+
+while response command before fetch interests
+
+\subsubsection{how to handle packet loss of data}
+
+\subsubsection{how to handle congestion control}
+repo implementation should design its own congestion control.
+
+\subsubsection{how to handle no end time out}
+NoEndTimeout means when command have start block id and no end block id. repo will keep fetch data packets
+
+\subsubsection{how to build application using insert command}
+give ndnputfile as an example.
+
+\subsection{delete}
+
+\subsubsection{process of delete}
+how to handle single delete, single delete with selector and segmented delete
+
+\subsubsection{special selector in delete}
+selector not to select one data but all the data conforming to the constraints
+
+\subsubsection{delete command lifetime timeout}
+
+\subsubsection{what to do if fail to delete some of the data packets}
+
+\subsubsection{how to build application using delete command}
+ndndeletefile
+
+\subsection{watch prefix}
+
+\subsubsection{process of watch prefix}
+
+\subsubsection{what to do if data time-out}
+
+\subsubsection{why use watch prefix command}
+
+\section{implementation of repo -- repo-ng}
+\subsection{storage-design}
+using database sqlite for back-end storage: better cross-platform, light-weight easy to implement
+
+using skiplist as index. for better performance rebuild index whenever repo restarts
+
+\subsection{trust model and access control}
+using valdiator-conf
+
+access control list designed referred to validator-conf design
+
+\subsection{congestion control design}
+
+\section{Evaluation}
+
+\subsection{local access}
+throughput compared to ccnr
+
+\subsection{network access}
+throughput of one-hop network
+
+maybe simulation of large-scale network to test failure cases.
+
+\section{conclusion and future work}
+
+
+% that's all folks
+\end{document}
+
+
