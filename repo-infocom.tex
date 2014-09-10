@@ -162,23 +162,34 @@
 \IEEEpeerreviewmaketitle
 
 \section{Introduction}
-Basic introduction of NDN and Why Naming and signature of data makes in-network storage possible.
 
-What is repo: storage device of data object managed by single party. Management Unit: prefix of data object. Provided functions: read, insert, delete, watch prefix.
+Data distribution is the largest network stream in current Internet. Many web applications like video or image distribution adopts content delivery network (CDN) for quick access of network data. Besides, more and more data are stored in network storage such as Dropbox, Google Drive and Amazon S3. Network and backend storage are commonly separately designed in current TCP/IP network architecture and there is always network packet and storage data presentation transforming process. In this paper, an in-network storage model Named Data Networking repository (\emph{NDN repo}) is proposed based on NDN network. In NDN, network packet is directly identified by the name of the data, not the source or destination identification. Thanks to this mechanism, \emph{NDN repo} directly storages network and application ready data. Application level framing is implemented in \emph{NDN repo}.
 
-Basic ideas of repo: Application Level Object. Repo is an attempt to implement this idea. What can repo benefit from Application Level Object idea.
+An \emph{NDN repo} is a set of storage application over NDN network managed by single party. The storage unit is data object and the management scope is based on namespace. NDN repo will response interests of managed name scope with data packets. Besides, NDN repo also offers data object insertion and deletion, fetching data with assigned name prefix and status check of such progresses. Compared with \emph{Content Store} (\emph{CS}) which provides data packets in-network cache, \emph{NDN repo} provides persistent storage for data objects.
+
+NDN makes in-network storage possible because of following reasons: Network packet is identified by source and destination host addresses in IP network, while name of NDN packet is irrelevant with physical endpoints. Any host in NDN network carrying data of given names can response to the \emph{interest}, but hosts besides source and destination cannot retrieve in-network IP packet. Another concern is the privacy of in-network data. Signature in data packet is to resolve authentication and confidentiality of data. \emph{Content Store (CS)} is cache of data packet in NDN router model and it is within network layer.
+
+In [], TCP/IP and other layered network architecture are reviewed. Data presentation is major cost in network data processing. This presentation process should not be limited to the current network function, but should adjust to certain application wants. Concept of application level framing is proposed to move presentation and transport control from network to application level.
+
+Our contribution: application level framing, combine network and storage, give an example of NDN application design and help NDN application adopts storage.
 
 \section{Background}
+\subsection{Named Data Networking}
+Named Data Networking (NDN) \cite{zhang2010named} is a data-oriented network architecture which replaces IP with names of data packets as the narrow waist of networking. The essential evolution of NDN is the change of network behaviors from delivering data to a certain destination to fetching data with a given name. \cite{zhang2010named} Because of this change, \emph{interest} and \emph{data object} are imported as network packets for fetching and responding data of given name. \emph{Interest} is the request of network packets containing prefix of names and other constraints. Besides the content of data packet, data packet also contains the full name and signature of data.
+
 \subsection{ccnr}
 ccnr. what it cannot do compared to repo
 
 \subsection{Naming Convention of NDN}
 Naming convention of NDN. Repo is to handle immutable data.
 
-\subsection{Application Level Object}
-talk something about paper ``Architectural  Considerations  for  a  New  Generation  of  Protocols ''
-
 \section{Design of Repo}
+The goal of this section is to demonstrate protocol and discuss concerns on potential failure cases.
+
+Overall introduction of NDN repo protocol
+
+The basic storage unit of data object is not just limited to one network data packet but defined by applicion level. Namespace is basic management unit, which means a set of name prefixes are registered to repo and repo will just regulates data objects under such prefixes.
+
 Address what problem should repo deal with:
 \begin{enumerate}
 \item how to identify a repo
@@ -190,12 +201,7 @@ Address what problem should repo deal with:
 
 Summary of points above. talk about a simple process of a repo command.
 
-What are the advantages of this design.
 
-\begin{itemize}
-\item Compared to ccnr. We have remote operations, removing functions, trust management
-\item compared to general network storage system. Repo stores application level object. network read data packet. avoid mapping between storage data and network data.
-\end{itemize}
 
 what functions have currently supported and what are the definitions.
 
@@ -264,9 +270,27 @@ throughput of one-hop network
 
 maybe simulation of large-scale network to test failure cases.
 
+\section{discussion}
+\subsection{discussion about the above evaluation}
+
+\subsection{What are the advantages of this design}
+
+\begin{itemize}
+\item Compared with ccnr. We have remote operations, removing functions, trust management
+\item compared with general network storage system. Repo stores application level object. network read data packet. avoid mapping between storage data and network data.
+\end{itemize}
+
 \section{conclusion and future work}
+conclusion points:
+\begin{itemize}
+\item \emph{NDN repo} implements concept of application level framing. Repo function process, transport control, security policy are directly applied in application level.
+\item Compared to \emph{ccnr}, \emph{NDN repo} is a more functional application for other NDN application to store data. Although some performance would be tradeoff for more functions.
+\end{itemize}
 
+Future work: multiple repo collaboration / repo sync
 
+\bibliographystyle{IEEEtran}
+\bibliography{IEEEabrv,repo}
 % that's all folks
 \end{document}
 
