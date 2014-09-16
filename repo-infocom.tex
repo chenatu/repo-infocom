@@ -163,27 +163,26 @@
 
 \section{Introduction}
 
-Data distribution is the largest network stream in current Internet. Many web applications like video or image distribution adopts content delivery network (CDN) for quick access of network data. Besides, more and more data are stored in network storage such as Dropbox, Google Drive and Amazon S3. Network and backend storage are commonly separately designed in current TCP/IP network architecture and there is always network packet and storage data presentation transforming process. In this paper, an in-network storage model Named Data Networking repository (\emph{NDN repo}) is proposed based on NDN network. In NDN, network packet is directly identified by the name of the data, not the source or destination identification. Thanks to this mechanism, \emph{NDN repo} directly storages network and application ready data. Application level framing is implemented in \emph{NDN repo}.
+Data distribution is the largest network stream in current Internet. Many web applications like video or image distribution adopts content delivery network (CDN) for quick access of network data. Besides, more and more data are stored in network storage such as Dropbox, Google Drive and Amazon S3. Network and backend storage are commonly separately designed in current TCP/IP network architecture and there is always network packet and storage data presentation transforming process. In this paper, an in-network storage model Named Data Networking repository (\emph{NDN repo}) is proposed based on NDN network. In NDN, network packet is directly identified by the name of the data, not the source or destination identification. Thanks to this mechanism, \emph{NDN repo} directly storages network and application ready data, which realizes the concept of application level framing. \cite{clark1990architectural}
 
-An \emph{NDN repo} is a set of storage application over NDN network managed by single party. The storage unit is data object and the management scope is based on namespace. NDN repo will response interests of managed name scope with data packets. Besides, NDN repo also offers data object insertion and deletion, fetching data with assigned name prefix and status check of such progresses. Compared with \emph{Content Store} (\emph{CS}) which provides data packets in-network cache, \emph{NDN repo} provides persistent storage for data objects.
+An \emph{NDN repo} is a set of storage application over NDN network managed by single party. It is upon application level without tweaking the NDN protocol. Compared with \emph{Content Store} (\emph{CS}) which provides data packets in-network cache, \emph{NDN repo} provides persistent storage for data objects. The storage of unit is data object and the management scope is based on NDN name prefix. An NDN repo should response interests with managed name prefix with data packets. Besides, NDN repo also offers data object insertion and deletion, fetching data with assigned name prefix and status check of such progresses. An \emph{NDN repo} should conform to the \emph{NDN repo} protocol, which specifies the semantics of NDN packet for repo interaction and basic processes of each functions, such as insertion and deletion. Repo protocol does not limit packet transport control or any security policy.
 
-NDN makes in-network storage possible because of following reasons: Network packet is identified by source and destination host addresses in IP network, while name of NDN packet is irrelevant with physical endpoints. Any host in NDN network carrying data of given names can response to the \emph{interest}, but hosts besides source and destination cannot retrieve in-network IP packet. Another concern is the privacy of in-network data. Signature in data packet is to resolve authentication and confidentiality of data. \emph{Content Store (CS)} is cache of data packet in NDN router model and it is within network layer.
+In this paper, the design of \emph{NDN repo} protocol is demonstrated. The major design goals are: security for remote operation, management and control based on namespace, reliable operation of large data object which can not be framed in a single data packet. Different special cases are detialedly discussed. An initial \emph{NDN repo} implementation \emph{repo-ng} is also demonstrated. It conforms to the protocol and provides interfaces to configure security policy. The boundary of network and storage is broken that data object could be directly used for application and network transportation. Besides, \emph{NDN repo} protocol can be applied for NDN application using data storage service.
 
-In [], TCP/IP and other layered network architecture are reviewed. Data presentation is major cost in network data processing. This presentation process should not be limited to the current network function, but should adjust to certain application wants. Concept of application level framing is proposed to move presentation and transport control from network to application level.
+The rest of this paper is organized as follows. Section \ref{section-background} introduce the background of \emph{NDN repo}.  Section \ref{section-design} illustrates the design goals of \emph{NDN repo} and how it works. Section \ref{section-implementation} demonstrates the example implementation of \emph{NDN repo} -- \emph{repo-ng}. Section \ref{section-evaluation} evaluates the performance and functionality of \emph{repo-ng}. Section \ref{section-discussion} discusses the evaluation results and tradeoff in \emph{NDN repo} design. Section \ref{section-conclusion} concludes the paper and addresses the future work.
 
-Our contribution: application level framing, combine network and storage, give an example of NDN application design and help NDN application adopts storage.
-
-\section{Background}
+\section{Background} \label{section-background}
 \subsection{Named Data Networking}
-Named Data Networking (NDN) \cite{zhang2010named} is a data-oriented network architecture which replaces IP with names of data packets as the narrow waist of networking. The essential evolution of NDN is the change of network behaviors from delivering data to a certain destination to fetching data with a given name. \cite{zhang2010named} Because of this change, \emph{interest} and \emph{data object} are imported as network packets for fetching and responding data of given name. \emph{Interest} is the request of network packets containing prefix of names and other constraints. Besides the content of data packet, data packet also contains the full name and signature of data.
+Named Data Networking (NDN) \cite{zhang2010named} is a data-oriented network architecture which replaces IP with names of data packets as the narrow waist of networking. The essential evolution of NDN is the change of network behaviors from delivering data to a certain destination to fetching data with a given name. \cite{zhang2010named} Because of this change, \emph{interest} and \emph{data object} are imported as network packets for fetching and responding data of given name. \emph{Interest} is the request of network packets containing prefix of names and other constraints. Data packet contains the content of data and the digital signature signed by data producer.
+
+In-network storage means device at network level can not only cache network packet temporarily, but also stores the data packet for local or remote application using directly. NDN makes in-network storage possible because of following reasons: Network packet is identified by source and destination host addresses in IP network, while name of NDN packet is irrelevant with physical endpoints. Any host in NDN network carrying data of given names can response to the \emph{interest}, but hosts besides source and destination cannot retrieve in-network IP packet. Another concern is the privacy of in-network data. Signature in data packet is to resolve authentication and confidentiality of data. \emph{Content Store (CS)} is cache of data packet in NDN router model and it is within network layer.
+
+In \cite{clark1990architectural}, TCP/IP and other layered network architecture are revisited. Data presentation is major cost in network data processing. This presentation process should not be limited to the current network function, but should adjust to certain application wants. Concept of application level framing is proposed to move presentation and transport control from network to application level. This principle is fully adopted in \emph{NDN repo} design.
 
 \subsection{ccnr}
-ccnr. what it cannot do compared to repo
+ \emph{Ccnr} is a subset software of CCNx project\footnote{CCNx: http://www.ccnx.org/what-is-ccn/}. CCN and NDN have the same origin and their architecture is similar. \emph{Cnnr} is a repository that preserving CCN network packet. It supports remote data fetching using interests and local data dump. The functions of \emph{ccnr} is limited. User cannot issue data insertion command remotely and command cannot be verified to apply security policy. This repository protocol is not sufficient for application needs.
 
-\subsection{Naming Convention of NDN}
-Naming convention of NDN. Repo is to handle immutable data.
-
-\section{Design of Repo}
+\section{Design of NDN Repo protocol} \label{section-design}
 The goal of this section is to demonstrate protocol and discuss concerns on potential failure cases.
 
 Overall introduction of NDN repo protocol
@@ -247,7 +246,7 @@ ndndeletefile
 
 \subsubsection{why use watch prefix command}
 
-\section{implementation of repo -- repo-ng}
+\section{implementation of repo -- repo-ng} \label{section-implementation}
 \subsection{storage-design}
 using database sqlite for back-end storage: better cross-platform, light-weight easy to implement
 
@@ -260,7 +259,7 @@ access control list designed referred to validator-conf design
 
 \subsection{congestion control design}
 
-\section{Evaluation}
+\section{Evaluation} \label{section-evaluation}
 
 \subsection{local access}
 throughput compared to ccnr
@@ -270,7 +269,7 @@ throughput of one-hop network
 
 maybe simulation of large-scale network to test failure cases.
 
-\section{discussion}
+\section{discussion} \label{section-discussion}
 \subsection{discussion about the above evaluation}
 
 \subsection{What are the advantages of this design}
@@ -280,7 +279,7 @@ maybe simulation of large-scale network to test failure cases.
 \item compared with general network storage system. Repo stores application level object. network read data packet. avoid mapping between storage data and network data.
 \end{itemize}
 
-\section{conclusion and future work}
+\section{conclusion and future work} \label{section-conclusion}
 conclusion points:
 \begin{itemize}
 \item \emph{NDN repo} implements concept of application level framing. Repo function process, transport control, security policy are directly applied in application level.
