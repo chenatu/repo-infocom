@@ -180,7 +180,7 @@ In-network storage means device at network level can not only cache network pack
 In \cite{clark1990architectural}, TCP/IP and other layered network architecture are revisited. Data presentation is major cost in network data processing. This presentation process should not be limited to the current network function, but should adjust to certain application wants. Concept of application level framing is proposed to move presentation and transport control from network to application level. This principle is fully adopted in \emph{NDN repo} design.
 
 \subsection{ccnr}
- \emph{Ccnr} is a subset software of CCNx project\footnote{CCNx: http://www.ccnx.org/what-is-ccn/}. CCN and NDN have the same origin and their architecture is similar. \emph{Cnnr} is a repository that preserving CCN network packet. It supports remote data fetching using interests and local data dump. The functions of \emph{ccnr} is limited. User cannot issue data insertion command remotely and command cannot be verified to apply security policy. This repository protocol is not sufficient for application needs.
+ \emph{Ccnr} is a subset software of CCNx project\footnote{CCNx: http://www.ccnx.org/what-is-ccn/}. CCN and NDN have the same origin and their designs of architecture are similar. \emph{Cnnr} is a repository that preserving CCN network packet. It supports remote data fetching using interests and local data dump. The functions of \emph{ccnr} is limited. User cannot issue data insertion command remotely and command cannot be verified to apply security policy. This repository protocol is not sufficient for application needs.
 
 \section{Design of NDN Repo protocol} \label{section-design}
 
@@ -228,70 +228,212 @@ In NDN, data packet carries the signature for validation. \emph{repo} command is
 
 The design goal or \emph{repo} functions is to make sure the status is visible to the client. This visibility is the basis of process control. For example, function insertion is to put data objects into repo. Client will send the command interest first to ask \emph{repo} to fetch the data with the name in the command parameter. If the client is also data producer, it will wait for the incoming interests. However, client will not know data is successfully put into the \emph{repo}. Client will wait until timeout, and cannot decide what to do. Thus, for each function of \emph{repo}, there should be status check process to status of the process, including whether the data object is successfully put or removed. In \emph{repo} design, different status check command comes with each function. This command will fetch the status and progres during the function operation.
 
-\subsection{read}
+\subsection{Data Retrieval}
 
-\subsection{insert}
-\subsubsection{process of insert}
-how to handle single insert, single insert with selector and segmented insert
+As a storage application in NDN, \emph{repo} can provide data objects that it holds. Different from IP network, where data retrieval can only be achieved when requester have the knowledge about data location, the data request process in \emph{repo} goes into a more direct way. To retrieve a data from \emph{repo}, there is no need for the requesters to know which \emph{repo} owns the data it needs. During \emph{repo} initiation, data request prefixes (which is the data name in most cases) are registered into NDN forwarding daemon (NFD)\footnote{NFD: http://redmine.named-data.net/projects/nfd/wiki}. \emph{Repo} keeps listening to its registered prefixes and only these registered requests will be forwarded by NFD to this \emph{repo}. To make sure efficiency of data retrieval, only the names of data that \emph{repo} current maintains should be registered. Once the \emph{repo} receives a request, it will response the data if it currently owns, otherwise, it will ignore the request.
 
-while response command before fetch interests
+\subsection{Data Insertion}
 
-\subsubsection{how to handle packet loss of data}
+\emph{Repo} data insertion represents the process that inserting a specific data object into Repo database, either obtained from local or remote node in the network. Data insertion is necessary since it is the only mechanism to append new data into \emph{repo}.
 
-\subsubsection{how to handle congestion control}
-repo implementation should design its own congestion control.
+Data insertion process starts from receiving a signed interest. Instead of providing the data directly to Repo (since in most cases, the client who sends the signed interest does not have the target data), the signed interest gives instruction on how to get the data. The signed interest should specify the data name that will be inserted, and Repo can use this name to request the data in network by sending normal interest.
 
-\subsubsection{how to handle no end time out}
-NoEndTimeout means when command have start block id and no end block id. repo will keep fetch data packets
+To insert data efficiently and correctly, \emph{repo} provides three different types of insertion: single insertion, insertion with selectors and segmented insertion. The signed interest will give Repo instruction that which insertion mechanism should be adopted.
 
-\subsubsection{how to build application using insert command}
-give ndnputfile as an example.
+\begin{enumerate}
+\item Single insertion can be used to fetch the object with small size, which can be encoded into one single data packet. Only one interest can bring back the whole object and \emph{repo} store the data after data arrives.
+\item Insertion with selectors will be triggered when signed interest contain name selectors. Selectors are used to narrow down the scope that the name prefix refers to. The normal interest that \emph{repo} sends to fetch the data should contain the exact same selectors specified in singed interest.
+\item Segmented insertion deals with large object whose size exceeds the upper bound of one single data packet. Repo will send multiple interests with same name prefix but incremental sequence number to fetch the segments of large object. To avoid multiple segmented data return back in out of order, there could be a congestion control mechanism, which uses pipeline to request and receives a certain number (N) of continues segmented data in a time. Once a segment data with sequence number M comes back, Repo will send a new interest to fetch the next segment whose sequence number should be M+N.
+    
+    Besides, for segmented insertion, start block id, which represents the first segment \emph{repo} needs to fetch, and end block id, which represent the last segment \emph{repo} should fetch, can be specified in signed interest to only insert parts of segmented large object to \emph{repo}. It is possible that start block id and end block id are not specified at the same time. The default start block id is zero, which represents \emph{repo} should fetch from the first existed segment. However, there is no default end block id since the total number of segments for different object varies with the object size. And a problem arises due to \emph{repo} does not have the knowledge about which segment is the last one. If the end block id is not specified, \emph{repo} will continuously fetch the next segments even if they are not existed. There are two methods working together to avoid this problem. 1) The data producer who responds the data can specify the final block id (the last segment number that existed) in every segment data. When \emph{repo} receives the segments with the final block id specified, it will know which sequence number is the last one and when should stop insertion process. 2) \emph{repo} sets up a timer when end block id is not specified. When timeout happens, \emph{repo} will stop fetching data to store and end insert process. If the segment data with the final block id arrives, this timeout timer will be dismissed.
+\end{enumerate}
 
-\subsection{delete}
+Retransmission mechanism is used to handle data packet loss. The timeout for an interest may infer data packet loss. Whenever there is a timeout happen, \emph{repo} retransmit the interest. \emph{Repo} will stop the insertion process until the total number of retransmission reach a certain value.
 
-\subsubsection{process of delete}
-how to handle single delete, single delete with selector and segmented delete
+To track the insertion process, a check command is used to get the current \emph{repo} status. The check command is implemented by signed interest and automatically issued by the same client who sends the insertion signed interest. It can bring back a status code which gives the client a hint that whether the insertion is successfully done.
 
-\subsubsection{special selector in delete}
-selector not to select one data but all the data conforming to the constraints
+ A tool named \emph{ndnputfile} is implemented to generate and send insertion signed interest. This tool also serves as data producer to those \emph{repos} who receive this signed interest. It helps those \emph{repos} to insert specific data either maintained locally or generated from stdin. Users can choose one from the three types of insertion and specify other parameters mentioned above in command line.
 
-\subsubsection{delete command lifetime timeout}
+\subsection{Data Deletion}
 
-\subsubsection{what to do if fail to delete some of the data packets}
+To manage data more easily and remove unnecessary data to improve overall performance, \emph{repo} support the functionality of deletion. The process of deletion is similar to insertion, starting from receiving deletion signed interests. Instead of sending normal interest to fetch data, during deletion, \emph{repo} only needs to find the data whose name is specified in signed interest and remove it
+from local database and index.
 
-\subsubsection{how to build application using delete command}
-ndndeletefile
+Similar to insertion, there are also three types of deletion: single deletion, deletion with selectors and segmented deletion. The process of these deletions are introduced as follow:
+
+\begin{enumerate}
+\item Single deletion is used to delete data packets (may not be a single one) stored in \emph{repo}. It will delete all the data that satisfy the name specified in signed interest (the name is the prefix of the data name).
+\item Deletion with selectors is triggered when signed interest contain name selectors. \emph{repo} will remove all the data that match the selectors.
+\item Segmented deletion is used to delete multiple segment data under same name prefix but have different sequence numbers. Start block id (optional, default is zero) and end block id (required) can be used to select the segments that should be deleted.
+\end{enumerate}
+
+From above, we can see that deletion process removes as much data as possible when receives a signed interest. It can also remove all the data under certain name space by only specifying the name space prefix in signed interest. In this way, \emph{repo} can achieve efficient deletion by issuing minimum number of interests. Besides, there are two methods to remove exact one data packet in \emph{repo}: 1) specify the full name in signed interest (since \emph{repo} use the longest-prefix match algorithm to find data) or 2) set the selectors to locate the exact target data.
+
+There is also a similar check command used to check the status of \emph{repo} deletion. The check command will be sent automatically by the client after a deletion signed interest is issued, and this check command will bring back the status code which notify the client whether the data has been deleted or not.
+
+The tool, ndndeletefile, is implemented to issue the deletion signed interest. The deletion type and parameters can be set by users.
 
 \subsection{watch prefix}
 
-\subsubsection{process of watch prefix}
+With the hierarchical name system and selectors mechanism, \emph{repo} can support a new insertion algorithm, watched prefix. Compared with normal insertion process, which can only instruct \emph{repo} to insert data that have already existed, watched prefix allows Repo to keep watching certain data prefix, and insert data that may not be existed at that point and that may be generated in the future. Using watched prefix mechanism, \emph{repo} are no longer limited to insert only existed data. Instead, it can obtain some data that are generated after the moment it receives the command, by periodically watching those data in the network. Normal insertion process cannot support this function since \emph{repo} will try to fetch the data immediately when it receives the signed interest, and insertion will fails if there is no such data in network. For normal insertion, inserting a data is an instant process, but for watched prefix, it is a lasting and continues process.
 
-\subsubsection{what to do if data time-out}
+When \emph{repo} receives the watched prefix signed interest, it will start this process. The signed interest need to specify the prefix that \emph{repo} should watch. \emph{repo} automatically and periodically generates the interests with that prefix and sends them into the network. If there are data returning back, \emph{repo} will update the interests by setting the exclude selector to exclude received data. In this way, Repo can avoid receiving duplicated data multiple times. If there is no data returning until timeout, \emph{repo} will resend the same interest.
 
-\subsubsection{why use watch prefix command}
+Besides, watched prefix process can be stopped in three different ways: 1) receive stop command, which is also a signed interest, 2) process timeout or 3) the total number of interests have been sent exceeds a certain value. 1) provides a method to manually terminate this process and both 2) and 3) can be used to stop the process automatically. The check command can also be used in watched prefix process to check whether the process is still running.
+
+Furthermore, there is no limitation for how many prefixes a Repo can watch at the same time. It is entirely possible that a Repo watches multiple prefix simultaneously. Every watched prefix process can work independently without interference.
+We also implement a tool, ndnwatchprefix, which can generate the watched prefix start command, stop command and check command based on the input information. The prefix for each command is required. Users can also specify the process timeout value and the maximum number of interests the watched prefix process can send.
 
 \section{implementation of repo -- repo-ng} \label{section-implementation}
-\subsection{storage-design}
-using database sqlite for back-end storage: better cross-platform, light-weight easy to implement
+\emph{Repo-ng} (NDN repo of new generation) is an implementation of NDN persistent in-network storage conforming to \emph{NDN Repo} protocol. It uses ndn-cxx as NDN client library and database Sqlite3 as underlying data storage.
 
-using skiplist as index. for better performance rebuild index whenever repo restarts
+\subsection{Repo Storage Design}
 
-\subsection{trust model and access control}
-using valdiator-conf
+The design of data packet storage of \emph{repo-ng} consists of index and storage components. Index is sorted associative container for Name stored in memory and storage is consistent storage for read, write and delete of data packet.
 
-access control list designed referred to validator-conf design
+Underlying storage offers structured API for retrieval, adding and removal of data packets. Sqlite3 is chosen to be the underlying storage for its well cross-platform, self-contained, serverless, and zero-configuration properties.
 
-\subsection{congestion control design}
+Index offers fast query of interest in memory. When an interest comes to \emph{repo}, \emph{repo} will query the index with the name and selector to select the id of data packet which is consistent with that of underlying storage. The structure of one entry of index is (Id, Name, KeyLocatorHash). Name is the name of data packet. KeyLocatorHash is the hash of key locator of data packet.
+
+In current \emph{repo-ng} design, the data structure of repo-index is skip list. Although skip list, Btree and other balanced tree all have O(n) query and insertion complexity, skip list has very low inherent constant-factor overheads. Besides, operations of skiplist are much easier to implement. \cite{pugh1990skip}
+
+\subsection{Tust Model and Access Control}
+
+\subsubsection{Tust Model}
+
+Command Interest and Data Packet can both be validated by \emph{repo-ng}. Whether or not validating is an option that can be configured. However, validation of command interest is highly recommended. In \emph{repo-ng} implementation, ``validator-config'' which is part of NDN basic library ``ndn-cxx'' is used as validator. The configuration file follows the format of validconf. \cite{validconf}
+
+\subsubsection{Access Control}
+hen a command interest is coming, each interest would be matched in Access Control List (ACL) to interest one by one, the best-matched rule is found. The design of ACL is referred to the format of validconf \cite{validconf}. Filter and checker are also defined in one rule. First, filter will check the prefix of the command interest to match the rule. Then filter will check the authorization of this filter according to the checker. The conceptual ACL is like Table \ref{ACL}:
+
+\begin{table}[htbp]
+\centering
+\caption{Access Control List}
+\label{ACL}
+\begin{tabular}{ | c | c | c | c | }
+    \hline
+    repo-prefix & data-prefix & write-access & delete access \\ \hline
+    /repo/example/1 & /data/example/1 & 1 & 0 \\ \hline
+    /repo/example/1 & /data/example/2 & 0 & 1 \\ \hline
+    /repo/example/2 & /data/example/3 & 1 & 1 \\ \hline
+\end{tabular}
+\end{table}
+
+Repo-prefix is the repo-prefix in \emph{repo} command interest. Data-prefix is that in RepoCommandParameter. Write and delete access defines the access of insertion and deletion.
+
+\subsection{Congestion Control}
+In process of insertion, after \emph{repo} receiving the insertion command for segmented data, it will send multiple interests for data packets. If these interests are sent in a burst, the round trip time will be large for some interests and it is difficult to set interest lifetime. So congestion control is necessary.
+
+A basic credit based congestion control is implemented for insertion command. There is credit number to count the waiting interest request. Once an interest is sent, the credit minus one and if an interest is satisfied by one data. If credit is equal or less than 0, the \emph{repo} stops sending interests. The original credit number could be adjusted according to the count of interest on the wire.
+
+In addition, if an interest is timeout. The same interest could be retransmitted for certain times that can be configured. The retransmitted interest will not subtract the credit.
 
 \section{Evaluation} \label{section-evaluation}
 
+To fully understand the characteristics and benefits of \emph{repo} storage mechanism, in this section, the performance of \emph{repo} is evaluated. The evaluation can be separated into four parts: 1) performance of local storage, 2) network access, 3) factors influencing data retrieval and 4) fairness among multiple \emph{repos}.
+
+For the first two parts, we test the \emph{repo} performance by running \emph{repos} in real situation. Tests are conducted on the following hardware platform: HP Z220 work station with 3.4 GHz Intel Core i7 processor of 8 cores, 16GB memory, 2T hard drive with 7200rpm, Ethernet Card 1000Mbps.  Lenovo notebook with 1.74GHz Intel Core i3 processor of 2 cores, 2GB memory, 500G hard drive with 7200rpm, Ethernet Card 1000Mbps.
+
+For the last two parts, we conduct simulation-based experiments to evaluate repo performance under different conditions. NS3\footnote{ns-3: a discrete-event network simulator for Internet systems, http://www.nsnam.org} with ndnSim \cite{afanasyev2012ndnsim} model is used to simulate multiple scenarios.
+
 \subsection{local access}
-throughput compared to ccnr
+In this part, we evaluate the performance of \emph{repo} storage system, which includes database and index. The reason why we care about the storage performance is because the storage system of \emph{repo} is different from others. The speed of data fetching, insertion and deletion of data packets are measured. In addition, comparison between \emph{repo} over NFD platform and \emph{ccnr} over ccnd platform are conducted.
+
+\emph{Repo} and \emph{ccnr} both supports retrieving and inserting data packets, but \emph{repo} also supports deleting data packets from repo. In this section, all the operations are tested on one hosts. The data packets are directly generated in memory to avoid hard drive I/O overhead. Access control is not configured. The following are scenarios of tests:
+
+\begin{enumerate}[a]
+\item Put $10^3$, $10^4$, $10^5$, $10^6$ data packets with 1200 bytes of data content into a clean \emph{repo-ng}. Validation is off.
+\item Put $10^3$ data packets with $10^3$. Insert commands into a clean \emph{repo-ng} with and without validation.
+\item Retrieve $10^3$, $10^4$, $10^5$, $10^6$ data packets from \emph{repo-ng} which carries $10^3$, $10^4$, $10^5$, $10^6$ data packets of 1200Bits.
+\item Remove $10^3$, $10^4$, $10^5$, $10^6$ data packets from \emph{repo-ng} which carries $10^3$, $10^4$, $10^5$, $10^6$ data packets of 1200Bits. Validation is off.
+\item Rebuild index from $10^3$, $10^4$, $10^5$, $10^6$ data packets from database file.
+\item Put $10^3$, $10^4$, $10^5$, $10^6$ data packets with 1200 bytes of data content into a clean \emph{ccnr}.
+\item Retrieve $10^3$, $10^4$, $10^5$, $10^6$ data packets from \emph{ccnr} which carries $10^3$, $10^4$, $10^5$, $10^6$ data packets of 1200Bits.
+\end{enumerate}
+
+Table \ref{local-repo} shows the results of \emph{repo-ng} speed from case a to case e. The unit of result is MBps. ``put -s'' and ``put-s-v'' mean insert commands into a clean \emph{repo-ng} with and without validation
+
+\begin{table}[htbp]
+\centering
+\caption{Local Access of Repo-ng}
+\label{local-repo}
+\begin{tabular}{ | c | c | c | c | c | c | c | }
+    \hline
+           & put & get & remove & rebuild & put-s & put-s-v \\ \hline
+    $10^3$ & 0.692 & 16.881 & 15.584 & 120 & 0.041 & 0.038  \\ \hline
+    $10^4$ & 0.715 & 16.585 & 25.974 & 153.846 & & \\ \hline
+    $10^5$ & 0.719 & 16.634 & 29.843 & 158.521 & & \\ \hline
+    $10^6$ & 0.713 & 12.918 & 26.266 & 95.610 & &\\ \hline
+\end{tabular}
+\end{table}
+
+Table \ref{local-ccnr}  shows the the results of \emph{ccnr} speed from case f to case g
+
+\begin{table}[htbp]
+\centering
+\caption{Local Access of Ccnr}
+\label{local-ccnr}
+\begin{tabular}{ | c | c | c | }
+    \hline
+           & put & get \\ \hline
+    $10^3$ & 1.336 & 0.869 \\ \hline
+    $10^4$ & 8.778 & 4.180 \\ \hline
+    $10^5$ & 24.995 & 13.258 \\ \hline
+    $10^6$ & 28.323 & 18.266 \\ \hline
+\end{tabular}
+\end{table}
+
+Table \ref{local-repo} and \ref{local-ccnr} shows the comparison of throughput between \emph{repo-ng} and \emph{ccnr}. The speed of insertion of \emph{ccnr} is far more higher than that of \emph{repo-ng}. One of main reason is the underlying storage of these systems. The storage of \emph{ccnr} is rather simple by appending new content objects in the \emph{ccnr} file. In \emph{repo-ng} design, it would support more complex query (selector) of data packets, so it adopts structured storage database. The process of database insertion is far more complex than just appending a file. The speed of fetching is comparable between \emph{repo-ng} and \emph{ccnr}. As we notice that, the speed of fetching drops a little as the mounts of packet grows. The index of \emph{repo-ng} is based on skiplist. It will took more time when index gets larger. Besides, query of database will get slower when data gets larger.
+
+Table \ref{local-repo} also shows the speed of possessing multiple commands. It takes 29.468s and 31.619s to possess 1000 insetion commands with and without validation. The time cost of insertion data packets into database could be dismissed. It takes about 30ms to possess a command locally. In our validation case, the \emph{repo-ng} directly validated commands and data packets using the local certificate file. As we can see, the time cost of validation is rather low.
 
 \subsection{network access}
-throughput of one-hop network
 
-maybe simulation of large-scale network to test failure cases.
+In this section, we test the performance of \emph{repo} protocols in real network, in order to understand how efficiently \emph{repo} can work in real environment. We run two \emph{repos} on the work stations mentioned above separately. The one running on Note-book serves as client and the other one running on HP Z220 works as a server. The two work stations are directly connected. The differences between this section and the previous one are: 1) the signed interests are generated by the server and transmitted to the client via network, instead of both generated and applied locally, and 2) client needs to fetch the data stored in server when the signed interests are specified as retrieval or insertion, instead of obtaining the data generated from memory.
+
+Since data transmissions are fast between the client and server, to quantitatively evaluate the performance of \emph{repo} protocols, we measure the time of the whole process, started from the generation of signed interest and finished when \emph{repo} correctly handles the data.
+
+We use the same scenarios (case a to case d mentioned in local access section) to test the performance with network connection. The results are also measured by throughput (Mbps).
+
+\begin{table}[htbp]
+\centering
+\caption{Network Access of Repo-ng}
+\label{network-repo}
+\begin{tabular}{ | c | c | c | c | c | c | }
+    \hline
+           & put & get & remove & put-s & put-s-v \\ \hline
+    $10^3$ & 0.396 & 2.230 & 8.053 & 0.033 & 0.032  \\ \hline
+    $10^4$ & 0.423 & 3.490 & 21.898 & & \\ \hline
+    $10^5$ & 0.0.424 & 3.476 & 24.964 & & \\ \hline
+\end{tabular}
+\end{table}
+
+Compared with local access, the speed drops due to the network latency between the two hosts. However, we can see a great speed drop on retrieving data packets. Different resources of client and \emph{repo} are tested to track down the performance bottleneck. We see that the  load of client CPU usage is up to 70\%. This is caused by the process of inserting data. When inserting data into the \emph{repo}, \emph{repo} will issues multiple interests for each data packet. The possessing of these interests would be a great load for the low hardware setting notebook.
+
+\emph{Repo-ng} is just one-thread process for now. There is some inefficiency to serve multiple client. For data retrieval, the cost of possessing each interest is little, so this one-thread design would not impact much. However, insertion or removal of large mount of data packets would block the \emph{repo-ng} process for a certain time, while \emph{repo-ng} cannot possess other data handle requests during this time.  Therefore, a time-cost process may cost congestion. Multi-thread or other types of asynchronous design should be adopted in future.
+
+\subsection{Factors influencing data retrieval}
+The reason why we care about data retrieval is because it is the operation that is most necessary and frequently conducted by repo (used in data insertion, retrieval and watched prefix). Due to the intrinsic properties of fetching mechanism, multiple rounds of sending interests and receiving data is necessary in request data (e.g. signed interest, segment insertion and retransmission). In light of this, the network conditions, including network delay and packet loss, may play a role in repo performance. Besides, the efficiency of data retrieval also depends on cost spent on database accessing (match the correct data in the database). Since the database processing is fully evaluated in Local storage section (section A), in this section, we will mainly focus on illustrating the performance under the influence of multiple network conditions.
+
+\subsubsection{Network Latency}
+
+The first network condition we will discuss is network latency. The network latency influences the transmission time of both interests and data. Imagine, if \emph{repo} works in a complex network with significant network latency, it is entirely possible that the interests expire before reaching to the node that maintains the target data. We evaluate how the total throughput of the network varies with the network latency. The throughput is measured by Mbps.
+
+To avoid unnecessary overhead, we use the simplest topology to test the throughput (Fig. 1) (there should be label here). In the simulation, the data rate of each link is 100 Mbps and drop-tail queue has capacity of 20000 packets, with 0 drop rate. The client repo sends 1000 data request to the server via a NDN router to request the data. After receiving the request, the server search the requested data in local database and return the data. All the requests can be satisfied by the server. We measure the time from sending the first request to receiving all the data packets.
+
+From the (Fig.2 there should be label) we can see that the throughput decreases with the network latency increases. To fully understand the influence of network latency, we reveal the performance with and without database processing separately. The blue curve represents there is no delay for database accessing and the throughput is only calculated from data transmission. And the yellow curve reveals the throughput of whole process, including database accessing and transmission. We can see in the network with small latency (lower than 20ms), the database accessing is the bottle neck for data retrieval. However, with the increasing of network latency, the cost of searching data in database becomes trivial, and the low throughput mainly result from the long delay of data transmission.
+
+\subsubsection{packet loss}
+
+Next, we want to talk about how packet loss lays the impact on data retrieval for \emph{repo}. Due to the properties of NDN routing, it is only when the interest timeout and no data come back can \emph{repo} know that there is something wrong. In this section, we assume that all the requested data exist in the network and the timeout only results from the packet drop, either interest or data.
+
+We simulate packet drop under different drop rates. The Rate Error Model in NS3 is applied to all the links in the network with same drop rate in each simulation. For \emph{repo}, whenever there is an interest timeout, it will re-issue the same interest immediately. For a certain interest, the maximum retransmission number is 4. If there is no data back after four times retransmission, repo aborts this request. We calculate the distribution of retransmission times under different packet drop rate to see how the packet loss influence the data retrieval. ¡°/¡± is used to represent the aborted requests.
+
+From the (Fig. 3), we can see that under certain packet drop rate, most requests only need to be retransmitted once, however, there are still a few requests that need to be retransmitted multiple times since it is possible that packet loss happens during the retransmission.  If the packets of same requests, either interests or data, drop multiple times, the waiting time should at least be interest lifetime multiple the number of retransmission. The situation goes worse in segment insertion, where the pipeline mechanism force \emph{repo} to fetch segment data in order. If one is missing, \emph{repo} will retransmit the corresponding interest and other segment data cannot be fetching, which leads to the postponement of the whole insertion process.
+
+Other network conditions, such as congestions and loop, are also fully evaluated. However, their contributions to the performance of data retrieval are not as significant as the two factors mentioned above. It can be explained either by some mechanisms designed to deal with them (\emph{repo} congestion control mechanisms), or by the intrinsic properties of NDN routing. Therefore due to the limited space, we will not present the evaluation result here.
+
+    
 
 \section{discussion} \label{section-discussion}
 \subsection{discussion about the above evaluation}
@@ -300,7 +442,7 @@ maybe simulation of large-scale network to test failure cases.
 
 \begin{itemize}
 \item Compared with ccnr. We have remote operations, removing functions, trust management
-\item compared with general network storage system. Repo stores application level object. network read data packet. avoid mapping between storage data and network data.
+\item compared with general network storage system. Repo stores application level object. network ready data packet. avoid mapping between storage data and network data.
 \end{itemize}
 
 \section{conclusion and future work} \label{section-conclusion}
