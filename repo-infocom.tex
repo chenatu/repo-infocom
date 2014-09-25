@@ -183,26 +183,50 @@ In \cite{clark1990architectural}, TCP/IP and other layered network architecture 
  \emph{Ccnr} is a subset software of CCNx project\footnote{CCNx: http://www.ccnx.org/what-is-ccn/}. CCN and NDN have the same origin and their architecture is similar. \emph{Cnnr} is a repository that preserving CCN network packet. It supports remote data fetching using interests and local data dump. The functions of \emph{ccnr} is limited. User cannot issue data insertion command remotely and command cannot be verified to apply security policy. This repository protocol is not sufficient for application needs.
 
 \section{Design of NDN Repo protocol} \label{section-design}
+
+\subsection{overall design of repo protocol}
+
 The goal of this section is to demonstrate protocol and discuss concerns on potential failure cases.
 
-Overall introduction of NDN repo protocol
+NDN Repo protocol is specification of NDN network packet and process to operate \emph{NDN repo}. Controls of the network transportation such as flow control, access control and so on are all defined in \emph{repo} application level, but not provided by underlying network. To design this \emph{repo} protocol, the following questions must be answered first:
 
-The basic storage unit of data object is not just limited to one network data packet but defined by applicion level. Namespace is basic management unit, which means a set of name prefixes are registered to repo and repo will just regulates data objects under such prefixes.
+\subsubsection{what is the storage unit}
 
-Address what problem should repo deal with:
-\begin{enumerate}
-\item how to identify a repo
-\item what to encode command and response
-\item how to transport command to designated repo
-\item how to construct trust policy and access control (based on signature info in signed interest)
-\item how to build functional application using repo (talking about necessity of status check command in helping building apps using repo)
-\end{enumerate}
+The basic storage unit is data object. A data object is not just limited to one NDN data packet but defined by application level. The name of data object adopts the naming convention of NDN data packet except that, one data object could be segmented into multiple data packets. Although the data consumer can still access certain segmented packet of a data object, the basic operation unit is advised to be data object. The data object is immutable. If the data producer updates the data object, it should generate the data object of a new version.
 
-Summary of points above. talk about a simple process of a repo command.
+Prefix is basic management unit, which means a set of name prefixes are registered to repo and repo will just regulates data objects under such prefixes.
 
+\subsubsection{what functions does the \emph{repo} provide}
 
+For a storage system, the basic operations are \emph{CRUD}. Currently, \emph{repo} offers data object retrieval, insertion, deletion and watch prefix. Data retrieval means \emph{repo} will response interests for data it holds. Data insertion and deletion are put and removal data objects of given names. Watch prefix function means that repo will keep sending interests of given interests for certain time.
 
-what functions have currently supported and what are the definitions.
+\subsubsection{how to identify a repo}
+
+One of the design goal of \emph{repo} is to operate on a designated \emph{repo}. There should be identities to distinguish \emph{repos}. In this design, the identity of \emph{repo} is \emph{repo} name. The format of \emph{repo} name conforms to the URL style of NDN name.
+
+\subsubsection{how to encode command and response}
+
+The command of \emph{repo} function is encoded in \emph{signed interest}\footnote{signed interest: http://redmine.named-data.net/projects/ndn-cxx/wiki/
+SignedInterest}. Singed interest is a interest encoded with signature in the component of the name of the interest. This signature is signed by client who issues the command. Once the repo receives the \emph{repo} command, repo can validate the signature and to do specific operation according to the identity of the command. The basic structure of \emph{repo} command is that:
+
+/$\langle repo-name\rangle$/$\langle function\rangle$/$\langle parameter\rangle$/$\langle timestamp\rangle$/
+$\langle random-value\rangle$/$\langle SignatureInfo\rangle$/$\langle SignatureValue\rangle$
+
+The last four components are necessary suffix of signed interests. \emph{Repo-name} is the name of the repo. \emph{function} is the name of the function, fox example, \emph{insert} for insert function. \emph{Parameter} is the parameter of the function. Multiple sub-components could be encoded in this parameter name component. For example, the parameter can carry the name of the data inserted for insert function.
+
+Response is the responding data packet for command singed interest. Multiple information could be encoded in the subsection content of the data packet. For example, statuscode can denotes the status for repo to handle the command.
+
+\subsubsection{how to transport command to designated \emph{repo}}
+
+The transport mechanism of NDN is ``pull'', different from ``push'' of TCP/IP. Interest will not be forwarded to a designated host. However, command should be forwarded to the operated \emph{repo}. According to above, each \emph{repo} has its name and the prefix of command interest is \emph{repo-name}. If the \emph{repo-name} is unique and the routing path is generated correctly, the interest would be forwarded to the designated \emph{repo}. If multiple \emph{repos} share the same name, the forwarding results would be influenced by underlying forwarding strategy.
+
+\subsubsection{how to secure the \emph{repo}}
+
+In NDN, data packet carries the signature for validation. \emph{repo} command is encoded in signed interest also carries the signature. Thus, the similar security policy could be adopted to validate the \emph{repo} command. In addition, identity of command issuer is also encoded in the command interest. \emph{repo} can decide whether this identity has the access to the functions. Access control can be made. In \emph{repo} protocol design, policy of trust and access control are not limited. The users can make their own strategies but just conform to the format \emph{repo} commands.
+
+\subsubsection{how to design functions of \emph{repo}}
+
+The design goal or \emph{repo} functions is to make sure the status is visible to the client. This visibility is the basis of process control. For example, function insertion is to put data objects into repo. Client will send the command interest first to ask \emph{repo} to fetch the data with the name in the command parameter. If the client is also data producer, it will wait for the incoming interests. However, client will not know data is successfully put into the \emph{repo}. Client will wait until timeout, and cannot decide what to do. Thus, for each function of \emph{repo}, there should be status check process to status of the process, including whether the data object is successfully put or removed. In \emph{repo} design, different status check command comes with each function. This command will fetch the status and progres during the function operation.
 
 \subsection{read}
 
