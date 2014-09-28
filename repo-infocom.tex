@@ -195,7 +195,7 @@ In \cite{clark1990architectural}, TCP/IP and other layered network architecture 
 
 \subsection{ccnr}
 
-\emph{Ccnr} is a subset software of CCNx project\footnote{CCNx: http://www.ccnx.org/what-is-ccn/}. CCN and NDN have the same origin and their designs of architecture are similar. \emph{Cnnr} is a repository that preserving CCN network packet. It supports remote data fetching using interests and local data dump. The functions of \emph{ccnr} is limited. User cannot issue data insertion command remotely and command cannot be verified to apply security policy. This repository protocol is not sufficient for application needs.
+\emph{Ccnr}\footnote{Ccnr: https://www.ccnx.org/releases/latest/doc/technical/RepoProtocol.html} is a subset software of CCNx project\footnote{CCNx: http://www.ccnx.org/what-is-ccn/}. CCN and NDN have the same origin and their designs of architecture are similar. \emph{Cnnr} is a repository that preserving CCN network packet. It supports remote data fetching using interests and local data dump. The functions of \emph{ccnr} is limited. User cannot issue data insertion command remotely and command cannot be verified to apply security policy. This repository protocol is not sufficient for application needs.
 
 \section{Design of NDN Repo protocol} \label{section-design}
 
@@ -315,7 +315,7 @@ CommandValidatorConf}.
 \subsubsection{Access Control}
 When a command interest is coming, the access control mechanism will apply the rules in Access Control List (ACL) to interest one by one, until find the best-match rule for interest. The matching process uses the longest-prefix match to compare the data prefix, repo-prefix specified in each rule with the data name and repo-name specified in signed interest respectively. Only when the two comparisons satisfy the relationship requirement can the rule be a validated rule.
 
-The design of ACL is referred to the format of validconf. The conceptual ACL is like Table \ref{ACL}:
+The design of ACL is referred to the format of validconf. The conceptual ACL is like Table \ref{ACL}.
 
 \begin{table*}[htbp]
 \centering
