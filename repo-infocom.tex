@@ -193,13 +193,13 @@ In-network storage means device at network level can not only cache network pack
 
 In \cite{clark1990architectural}, TCP/IP and other layered network architecture are revisited. Data presentation is the major cost in network data processing. This presentation process should not be limited to the current network function, but should be adjusted to certain application wants. Concept of application level framing is proposed to move presentation and transport control from network to application level. This principle is fully adopted in \emph{NDN repo} design.
 
-\subsection{ccnr}
+\subsection{Ccnr}
 
 \emph{Ccnr}\footnote{Ccnr: https://www.ccnx.org/releases/latest/doc/technical/RepoProtocol.html} is a subset software of CCNx project\footnote{CCNx: http://www.ccnx.org/what-is-ccn/}. CCN and NDN have the same origin and their designs of architecture are similar. \emph{Ccnr} is a repository that preserving CCN network packet. It supports remote data fetching using interests and local data dump. The functions of \emph{ccnr} is limited, since user cannot issue data insertion command remotely and command cannot be verified by security policy.
 
-\section{Design of NDN Repo protocol} \label{section-design}
+\section{Design of NDN Repo Protocol} \label{section-design}
 
-\subsection{overall design of repo protocol}
+\subsection{Overall Design of \emph{Repo} Protocol}
 
 The goal of this section is to demonstrate protocol and discuss concerns on potential failure cases. NDN Repo protocol is specification of NDN network packet and process to operate \emph{NDN repo}. Controls of the network transportation such as flow control, access control and so on are all defined in \emph{repo} application level. To design this \emph{repo} protocol, the following questions must be answered first:
 
@@ -281,7 +281,7 @@ From above, we can see that deletion process removes as much data as possible wh
 
 There is also a similar check command used to check the status of \emph{repo} deletion. The check command will be sent periodically by the client after a deletion command is issued. This check command will bring back the status code which notifies the client whether the data has been deleted or not.
 
-\subsection{Watched prefix}
+\subsection{Watched Prefix}
 
 With the hierarchical name system and selectors mechanism, \emph{repo} can support a new insertion algorithm, watched prefix. Watched prefix allows \emph{repo} to keep watching certain name spaces and insert all the data under that name spaces. Besides, \emph{repo} is no longer limited to insert only existed data by using watched prefix. It can obtain some data that are generated after the moment it receives the command, by periodically watching those data in the network. Normal insertion process cannot support this function since \emph{repo} will try to fetch the data immediately when it receives the signed interest, and insertion will fails if there is no such data in network. For normal insertion, inserting a data is an instant process, but for watched prefix, it is a lasting and continues process.
 
@@ -291,7 +291,7 @@ Besides, watched prefix process can be stopped in three different ways: 1) recei
 
 Furthermore, there is no limitation for how many prefixes a Repo can watch at the same time. It is entirely possible that a \emph{repo} watches multiple prefix simultaneously. Every watched prefix process can work independently without interference.
 
-\section{implementation of repo -- repo-ng} \label{section-implementation}
+\section{Implementation of \emph{Repo} -- \emph{Repo-ng}} \label{section-implementation}
 \emph{Repo-ng} (NDN repo of new generation) is an implementation of NDN persistent in-network storage conforming to \emph{NDN Repo} protocol. It uses ndn-cxx as NDN client library and database Sqlite3 as underlying data storage.
 
 \subsection{Repo Storage Design}
@@ -347,7 +347,7 @@ Local and network access are testes on physical machines. Hardware platform: HP 
 Simulation-based experiments to evaluate \emph{repo} performance under different conditions. NS3\footnote{ns-3: a discrete-event network simulator for Internet systems:
 http://www.nsnam.org} with ndnSim \cite{afanasyev2012ndnsim} model is used to simulate multiple scenarios.
 
-\subsection{local access}
+\subsection{Local Access}
 In this part, the performance of \emph{repo} storage system, which includes database and index, is fully evaluated. The speed of data fetching, insertion and deletion of data packets are measured. In addition, comparison between \emph{repo} over NFD platform and \emph{ccnr} over \emph{ccnd} platform are conducted.
 
 \emph{Repo} and \emph{ccnr} both support retrieving and inserting data packets, but \emph{repo} also supports deleting data packets from repo. In this section, all the operations are tested on one host. The data packets are directly generated in memory to avoid hard drive I/O overhead. Access control is not configured. The following are scenarios of tests:
@@ -380,7 +380,7 @@ Table \ref{local-repo} shows the results of \emph{repo-ng} speed from case a to 
 
 Table \ref{local-repo} shows the comparison of throughput between \emph{repo-ng} and \emph{ccnr}. The speed of insertion of \emph{ccnr} is far more higher than that of \emph{repo-ng}. One of main reason is the underlying storage of these systems. The storage of \emph{ccnr} is rather simple by appending new content objects in the \emph{ccnr} file. In \emph{repo-ng} design, it would support more complex query (selector) of data packets, so it adopts structured storage database. The process of database insertion is far more complex than just appending a file. The speed of fetching is comparable between \emph{repo-ng} and \emph{ccnr}. The speed of fetching drops a little as the mounts of packet grows. The index of \emph{repo-ng} is based on skiplist. It will took more time when index gets larger. Besides, query of database will get slower when data gets larger.
 
-\subsection{network access}
+\subsection{Network Access}
 HP Z220 and the notebook are directly connected. Notebook works as client and repo-ng runs on HP Z220. Case a to case d in local access section are tested as table \ref{network-repo} shows.
 
 \begin{table}[htbp]
