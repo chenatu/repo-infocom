@@ -148,9 +148,7 @@ Los Angeles, CA 90095\\
 
 \begin{abstract}
 %\boldmath
-NDN repository (\emph{repo} for short) is a persistent storage model of Named Data Networking, compared with NDN Content Store. NDN makes in-network storage possible because of naming and signature mechanism of network data packets. \emph{NDN repo} is not a built-in part of NDN, but an application conforming to NDN protocol. Application level framing is realized in \emph{repo} design. Network data can be used for application directly.
-
-In this paper, a specification of \emph{NDN repo} is designed to standardize repo operation interfaces. An initial implementation \emph{repo-ng} is presented. Evaluation is conducted compared with \emph{ccnr} of the CCNx project. \emph{Repo-ng} provides more functionalities in remote operation and security policy with reasonable performance tradeoff.
+Named Data Networking (NDN) enables in-network storage by naming data packets binding the data to the name through cryptographic signature.  The current NDN design includes two types of in-network storage, Content Store (CS) and repository (\emph{repo} for short).  The former is a built-in opportunistic cache at each NDN router, the latter serves as persistent and managed storage for specific contents but requires a separate implementation. In this paper, we present a specification of \emph{NDN repo} and an initial implementation of \emph{repo-ng}.  We have conducted preliminary evaluation of \emph{repo-ng} in comparison with \emph{ccnr} of the CCNx project.  Our results show that \emph{Repo-ng} provides more functionalities in remote operation and security policy with reasonable performance tradeoff.
 
 \end{abstract}
 % IEEEtran.cls defaults to using nonbold math in the Abstract.
